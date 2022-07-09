@@ -24,7 +24,6 @@ def print_f(any):
 
 
 def print_t(any):
-    
     print('-' * 30)
     print('* 类型输出')
     print('-' * 30)
