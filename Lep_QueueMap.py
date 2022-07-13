@@ -5,6 +5,7 @@ import copy
 class LEPQUEUE_ERROR(Exception): pass
 
 class Lep_QueueMap:
+    # 静态变量
     map = {}
     def __init__(self, ownername:str, owner) -> None:
         setattr(owner, 'qmap', self)
