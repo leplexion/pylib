@@ -11,3 +11,9 @@ def filewriteb(_bytes: bytes, file:str, encoding='utf-8'):
         f.write(_bytes)
         f.close()
 
+def fileread(path:str, encoding='utf-8'):
+    res = None
+    with open(path, 'r', encoding=encoding) as f:
+        res = f.read()
+        f.close()
+    return res
