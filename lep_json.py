@@ -24,3 +24,13 @@ def Json2FilePretty(dic, dir:str)->None:
     return path
 
 
+def jsonpretty(dic):
+    t = type(dic).__name__
+    if t == 'dict':
+        return json.dumps(dic, sort_keys=True, indent=4, separators=(',', ': '))
+    elif t == 'str':
+        t = json.loads(dic)
+        return json.dumps(dic, sort_keys=True, indent=4, separators=(',', ': '))
+    else:
+        raise Exception('该函数不支持的类型:', t)
+
