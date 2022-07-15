@@ -1,6 +1,9 @@
 import json
 import re
-from .lep_time import get_now_acc_msec
+try:
+    from .lep_time import get_now_acc_msec
+except:
+    from lep_time import get_now_acc_msec
 
 def Json2FilePretty(dic, dir:str)->None:
     path = re.sub('\\/+', '/', f'{dir}/{get_now_acc_msec()}.json')

@@ -2,8 +2,10 @@ import requests
 import requests.utils
 from requests import Response, Session
 import urllib3
-from .lep_print import print_e
-
+try:
+    from .lep_print import print_e
+except:
+    from lep_print import print_e
 
 # 可用返回None, 不可用返回失败原因
 def isProxyEnable(proxy:dict, ip:str)->str:

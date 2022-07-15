@@ -5,7 +5,11 @@ try:
 except ImportError:
     from yaml import Loader, Dumper
 
-from .lep_json import Json2FilePretty
+try:
+    from .lep_json import Json2FilePretty
+except:
+    from lep_json import Json2FilePretty
+
 import json
 
 class CONFIG_KEY_ERROR(Exception): pass
