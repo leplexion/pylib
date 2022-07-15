@@ -49,6 +49,27 @@ def get_name_noext(path:str)->str:
     return '.'.join(path.split('.')[:-1])
 
 
+def get_ext(path:str)->str:
+    '''获取没有路径的文件名'''
+    if path == '' or path is None: return ''
+    path = path.replace('\\', '/')
+    if path[-1:] == '/': return ''
+    if '/' in path:
+        path = path.split('/')[-1]
+    if '.' not in path: return ''
+    return path.split('.')[-1]
+
+
+def is_file_ext(path:str, ext:str):
+    return get_ext(path).lower() == ext.split('.')[-1].lower()
+
+
+def path_exist(path:str)->bool:
+    '''判断路径是否存在'''
+    path = abspath(path)
+    return pathlib.Path(path).exists()
+
+
 def is_compiled(): 
     '''判断是否在编译的环境'''
     return getattr(sys, 'frozen', False)
@@ -58,7 +79,8 @@ def get_parent_dir(path:str):
     '''获取上一级目录'''
     return pathlib.Path(path).parent.absolute()
 
-def get_dir_list(dir:str='', mode:str='', recursion:bool=False, ensuredir:bool=True):
+
+def get_dir_list(dir:str='', mode:str='', recursion:bool=False, ensuredir:bool=True, ext:str=''):
     '''
         目录下所有的文件列表
         不用绝对路径则默认在 工作目录 下
@@ -89,13 +111,27 @@ def get_dir_list(dir:str='', mode:str='', recursion:bool=False, ensuredir:bool=T
 
     if not mode: 
         mode = 'fname'
+
     def modeget(res:list, cdir, dirls, filels):
         if mode == 'fname':
-            res.extend(filels)
+            if ext == '':
+                res.extend(filels)
+            else:
+                res.extend(filter(lambda file: is_file_ext(file, ext), filels))
+
         elif mode == 'fnoext':
-            res.extend([get_name_noext(f) for f in filels])
+            if ext == '':
+                res.extend([get_name_noext(f) for f in filels])
+            else:
+                res.extend([get_name_noext(f) for f in filter(lambda file: is_file_ext(file, ext), filels)])
+                
         elif mode == 'ffullpath':
-            res.extend([(f'{cdir}{div}{f}') for f in filels])
+            # print(1)
+            if ext == '':
+                res.extend([(f'{cdir}{div}{f}') for f in filels])
+            else:
+                res.extend(filter(lambda path: is_file_ext(path, ext), [ f'{cdir}{div}{f}' for f in filels]))
+
         elif mode == 'dname':
             res.extend(dirls)
         elif mode == 'dfullpath':
@@ -115,8 +151,7 @@ def get_dir_list(dir:str='', mode:str='', recursion:bool=False, ensuredir:bool=T
             modeget(res, cdir, dirls, filels)
 
     return list(dict.fromkeys(res))
-    
 
 if __name__ == '__main__':
-    for key in get_dir_list(mode='ffullpath', dir='libpy', ensuredir=True):
+    for key in get_dir_list(mode='fnoext', ensuredir=True, ext='py'):
         print(key)
