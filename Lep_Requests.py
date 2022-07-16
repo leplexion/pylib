@@ -7,6 +7,41 @@ try:
 except:
     from lep_print import print_e
 
+def cookieStr2Dict(cookies:str):
+    cookie_dic = {}
+    for i in cookies.split('; '):
+        cookie_dic[i.split('=')[0]] = i.split('=')[1]
+    return cookie_dic
+
+def cookieDict2Str(cookies:dict):
+    return requests.utils.cookiejar_from_dict(cookies)
+
+def parseCookie(cookie:str)->dict:
+    '''
+        解析从谷歌浏览器复制黏贴的cookie
+    '''
+    if cookie == '': raise Exception('cookie 不允许未空')
+    sstart = 'cookie: '
+    cookie=cookie.strip(' ')
+    if cookie.startswith(sstart):
+        cookie = cookie[len(sstart):]
+    res:dict = {}
+    cookiepairs = cookie.split(' ')
+    cookiepair:str = ''
+    for cookiepair in cookiepairs:
+        cookiepair=cookiepair.strip(' ')
+        if cookiepair.startswith('=') or cookiepair.endswith('='):
+            raise Exception(f'解析cookie错误: 遭遇开头或尾部={cookiepair}')
+        cookiepairls= cookiepair.split('=')
+        if len(cookiepairls) != 2:
+            raise Exception(f'解析cookie错误: 获得超过不等于2位的键值对 {cookiepair}')
+        val:str = cookiepairls[1]
+        res[cookiepairls[0]] = val if not val.endswith(';') else val[:-1]
+    # a = res.keys
+    if len(res) < 1:
+        raise Exception(f'解析cookie错误: 未成功解析cookie内容')
+    return res
+
 # 可用返回None, 不可用返回失败原因
 def isProxyEnable(proxy:dict, ip:str)->str:
     # proxy = {'http': 'socks5://123456:654321@23.23.23.23:5555', 'https': 'socks5://123456:654321@23.23.23.23:5555'}
@@ -113,3 +148,6 @@ class LepRequests:
         except Exception as e: 
             # print('请求错误')
             raise e
+
+if __name__ == '__main__':
+    print(cookieStr2Dict('yandexuid=1895670281657529799; yuidss=1895670281657529799; i=h+wh9pItRSyhKlw4GthKt6liw6FoEPiEO2loGZDOvHzM/ZN8a0fV57Qljtb4XZFHN4oi+ueQ+1hXXC2Ow/4RF9Vgp0M=; yandex_gid=87; is_gdpr=0; is_gdpr_b=CI+ICxDwfQ==; yp=1657939556.yu.1895670281657529799; ymex=1660445156.oyu.1895670281657529799#1689138965.yrts.1657602965#1689139825.yrtsi.1657603825; sync_cookie_ok=synced; yabs-sid=850611151657933394'))

@@ -5,10 +5,10 @@ try:
 except:
     from lep_time import get_now_acc_msec
 
-def Json2FilePretty(dic, dir:str)->None:
+def Json2FilePretty(dic, dir:str)->str:
     path = re.sub('\\/+', '/', f'{dir}/{get_now_acc_msec()}.json')
     t = type(dic).__name__
-    if t == 'dict':
+    if t == 'dict' or t == 'list':
         t = json.dumps(dic, sort_keys=True, indent=4, separators=(',', ': '))
         with open(path, 'w', encoding='utf-8') as f:
             f.write(t)
@@ -26,6 +26,19 @@ def Json2FilePretty(dic, dir:str)->None:
 
     return path
 
+def json2file(dic, dir:str)->None:
+    path = re.sub('\\/+', '/', f'{dir}/{get_now_acc_msec()}.json')
+    t = type(dic).__name__
+    if t == 'dict' or t == 'list': 
+        t = json.dumps(dic)
+    elif t == 'str':
+        t = dic
+    else:
+        raise Exception('该函数不支持的类型:', t)
+    with open(path, 'w', encoding='utf-8') as f:
+        f.write(t)
+        f.close()
+    return path
 
 def jsonpretty(dic):
     t = type(dic).__name__
