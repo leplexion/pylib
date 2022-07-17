@@ -17,9 +17,7 @@ def cookieDict2Str(cookies:dict):
     return requests.utils.cookiejar_from_dict(cookies)
 
 def parseCookie(cookie:str)->dict:
-    '''
-        解析从谷歌浏览器复制黏贴的cookie
-    '''
+    ''' 解析从谷歌浏览器复制黏贴的cookie '''
     if cookie == '': raise Exception('cookie 不允许未空')
     sstart = 'cookie: '
     cookie=cookie.strip(' ')
@@ -42,7 +40,6 @@ def parseCookie(cookie:str)->dict:
         raise Exception(f'解析cookie错误: 未成功解析cookie内容')
     return res
 
-# 可用返回None, 不可用返回失败原因
 def isProxyEnable(proxy:dict, ip:str)->str:
     # proxy = {'http': 'socks5://123456:654321@23.23.23.23:5555', 'https': 'socks5://123456:654321@23.23.23.23:5555'}
     # ip = '23.23.23.23'
@@ -70,7 +67,6 @@ def isProxyEnable(proxy:dict, ip:str)->str:
         print(e)
         errmsg = f'验证代理发生未知的错误类型{type(e)}'
         return errmsg
-
 
 def diable_urilib3_warnings():  # 禁用 ssl 警告
     urllib3.disable_warnings()

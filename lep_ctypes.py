@@ -51,7 +51,7 @@ class Lep_Buffer:
         return buff
 
     @staticmethod
-    def create_from_str(s:str, encoding:str='utf-8', end='\0'):
+    def create_from_str(s:str, encoding:str='utf-8', end='\0\0'):
         if len(s) < 1: raise Exception(f'string参数字符串长度不允许小于1')
         return Lep_Buffer.create_from_bytes(f'{s}{end}'.encode(encoding))
 
@@ -120,8 +120,13 @@ class Lep_Buffer:
     def fill_bytes(self, byte:int)->None:
         self.__buff.value = bytes([ byte for _ in range(0, self.size) ])
 
-    def reset_size(self, newsize:int, keepdata:bool=True, autoslice:bool=False):
-        '''将重置内存地址'''
+    def resize(self, newsize:int, keepdata:bool=True, autoslice:bool=False):
+        '''如果尺寸不一致, 将重置内存地址'''
+        if newsize == self.size: 
+            if not keepdata:
+                self.fill_bytes(0)
+            return
+        if newsize < 1: raise Exception('新的内存地址不得小于1')
         if keepdata:
             bytes_ = self.raw
             if newsize < self.size:
@@ -136,7 +141,6 @@ class Lep_Buffer:
     def get_bytes(self)->bytes:
         return self.raw
 
-    '''长度5, 偏移2 5-2 = 3'''
     def set_bytes(self, raw:bytes, offset:int=0, autoslice:bool=False):
         '''
             不改变原来地址, 设置二进制数据
@@ -163,12 +167,14 @@ class Lep_Buffer:
     def copy(self):
         return Lep_Buffer.create_from_bytes(self.raw)
 
+    def copy2ptr(self, ptr:int):
+        (c_char * self.size).from_address(ptr).value = self.raw
+
     def reverse(self):
         bls = list(self.raw)
         bls.reverse()
         self.__buff.value = bytes(bls)
         return self
-
 
 if __name__ == '__main__':
     # a = Lep_Buffer.create_from_bytes('你好世界'.encode('gbk'))
