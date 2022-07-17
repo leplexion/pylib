@@ -57,8 +57,9 @@ class Lep_Buffer:
 
     @staticmethod
     def create_from_ptr(ptr, size:int):
+        if size < 1: raise Exception(f'创建buffer尺寸不允许小于{size}')
         buff = Lep_Buffer()
-        buff.__buff = string_at(ptr, size)
+        buff.__buff = (c_char * size).from_address(ptr)
         return buff
 
     @staticmethod
@@ -100,7 +101,7 @@ class Lep_Buffer:
     def raw_hex_str(self)->str:
         return ''.join(['%02x' % byte for byte in self.raw])
 
-    def save_file(self, file:str):
+    def save_file(self, file:str)->None:
         with open(file, 'wb') as f:
             f.write(self.raw)
             f.close()
@@ -116,10 +117,8 @@ class Lep_Buffer:
             idx += 1
         return res
 
-    def set_raw(self, raw:bytes, offset:int=0, autoslice:bool=False):
-        wsize = len(raw)
-        if wsize + offset > self.size:
-            pass
+    def fill_bytes(self, byte:int)->None:
+        self.__buff.value = bytes([ byte for _ in range(0, self.size) ])
 
     def reset_size(self, newsize:int, keepdata:bool=True, autoslice:bool=False):
         '''将重置内存地址'''
@@ -136,6 +135,27 @@ class Lep_Buffer:
 
     def get_bytes(self)->bytes:
         return self.raw
+
+    '''长度5, 偏移2 5-2 = 3'''
+    def set_bytes(self, raw:bytes, offset:int=0, autoslice:bool=False):
+        '''
+            不改变原来地址, 设置二进制数据
+            autoslice: 超出长度的部分是否被截取, False 在超出长度时抛出异常
+        '''
+        wsize = len(raw)
+        ssize = self.size
+
+        if wsize < 1: raise Exception('写入的bytes长度不允许小于1')
+        if offset >= ssize: raise Exception('偏移超出该buffer尺寸')
+
+        overflow = wsize + offset > ssize
+        if (not autoslice) and overflow: 
+            raise Exception('写入的字节将超出该buffer内存的长度')
+        elif autoslice and overflow:
+            slice_size = ssize-offset
+            (c_char * slice_size).from_address(self.ptr+offset).value = raw[:slice_size]
+        else:
+            (c_char * wsize).from_address(self.ptr+offset).value = raw
 
     def get_str(self, encoding:str='utf-8')->str:
         return self.raw.decode(encoding=encoding)
@@ -156,4 +176,6 @@ if __name__ == '__main__':
     # print(a.size)
     # print(a.raw)
     buff = Lep_Buffer.create_from_str('abc', encoding='utf-16')
+    buff.fill_bytes(0)
+    buff.set_bytes(b'abc', 1)
     print(buff.get_raw_hex_str())
