@@ -1,7 +1,21 @@
 from cmath import e
+from concurrent.futures import thread
 import ctypes
-from ctypes import c_int, c_uint, c_void_p, c_wchar_p, _SimpleCData, pointer, cast, string_at
+from ctypes import c_int, c_uint, c_void_p, c_wchar_p, _SimpleCData, create_string_buffer, pointer, cast, string_at
+import json
+import platform
+import __main__, sys, pathlib
+from time import time
 
+
+def is32ptr()->bool:
+    '''判断本进程是32位程序'''
+    return platform.architecture()[0] == '32bit'
+
+def get_main_dir():
+    '''获取 入口 文件所在目录'''
+    if getattr(sys, 'frozen', False): return sys.executable
+    return str(pathlib.Path(__main__.__file__).parent.absolute())
 
 def getptrnum(ptr, ctype:_SimpleCData):
     '''
@@ -9,15 +23,13 @@ def getptrnum(ptr, ctype:_SimpleCData):
         getptrnum(buff.ptr, c_int)
     '''
     return ctype.from_address(ptr).value
-
-
+    
 def setptrnum(ptr, ctype:_SimpleCData, val):
     '''
         # 设置数字类型指针的值, ctype 为 类型, 非实例化对象
         setptrnum(buff.ptr, c_int, 567)
     '''
     ctype.from_address(ptr).value = val
-
 
 def getptrstr(ptr, size:int, encoding:str):
     '''
@@ -26,7 +38,6 @@ def getptrstr(ptr, size:int, encoding:str):
         print(getptrstr(b.ptr, b.size, 'utf-8'))
     '''
     return string_at(ptr, size).decode(encoding)
-
 
 def getptr(buff:_SimpleCData):
     '''
@@ -45,6 +56,9 @@ def getptrhex(buff:_SimpleCData):
 
 
 class Lep_Ahkh2_Orgin:
+
+    ah2dll:ctypes.CDLL = None
+
     @staticmethod
     def settypes(ah2dll:ctypes.CDLL):
         '''该dll导出函数皆为CDecl Call'''    
@@ -127,13 +141,17 @@ class Lep_Ahkh2_Orgin:
 
     def __init__(self, dllpath) -> None:
         self.dllpath = dllpath
-        self.ah2dll:ctypes.CDLL = ctypes.cdll.LoadLibrary(dllpath)
+        self.ah2dll:ctypes.CDLL = Lep_Ahkh2_Orgin.ah2dll if Lep_Ahkh2_Orgin.ah2dll else ctypes.cdll.LoadLibrary(dllpath)
+
+        # self.ah2dll:ctypes.CDLL = ctypes.cdll.LoadLibrary(dllpath)
+
+
         Lep_Ahkh2_Orgin.settypes(self.ah2dll)
 
-
-class Lep_Ahkh2_OT(Lep_Ahkh2_Orgin):
-    '''单线程执行工具'''
-    def __init__(self, dllpath, title:str='') -> None:
+class Lep_Ahkh2(Lep_Ahkh2_Orgin):
+    ''' AHK阻塞执行 '''
+    def __init__(self, dllpath:str='', title:str='', cmdline:str='') -> None:
+        '''dllpath第一次初始化要填路径, 最好是完整路径, 成功载入之后该参数无效'''
         super().__init__(dllpath)
 
         self._return_size_buff_type_str = 'UInt'
@@ -141,14 +159,48 @@ class Lep_Ahkh2_OT(Lep_Ahkh2_Orgin):
         self._return_size_buff = self._return_size_buff_type(0)
         self._return_size_ptr_hex = getptrhex(self._return_size_buff)
 
+        self._return_buffptr_type_str = 'Ptr'
+        self._return_buffptr_type = c_void_p
+        self._return_buffptr_buff = self._return_buffptr_type()
+        self._return_buffptr_ptr_hex = getptrhex(self._return_buffptr_buff)
+
         self.title = ''
-        self.threadid = self.ah2dll.NewThread('Persistent True', '', title)
+        self.threadid = self.ah2dll.NewThread('#NoTrayIcon\nPersistent True', cmdline, title)
         while not self.ah2dll.ahkReady(self.threadid):
             pass
-        self.add_script('global _return := ""')
-        self.add_script(f'''
-            global _return := ""
-            global _return_buff := ""
+
+        self.pyfncbmap = {}
+        def pyfncb(cbinfo)->c_wchar_p:
+            cbinfo = json.loads(cbinfo)
+            # print(cbinfo)
+            fn = self.pyfncbmap[cbinfo['fnnamepy']]
+            res = fn(*cbinfo['args'])
+            if (res is None) or (res == ''): 
+                self.do("""_pyreturn_temp := '[""]'""")
+            else:
+                sret:str = json.dumps([res]) + '\0\0'
+                bret:bytes = sret.encode('utf-8')
+                
+                buff = create_string_buffer(len(bret))
+                buff.value = bret
+                buff_ptrhex:str = getptrhex(buff)
+                self.do(f"_pyreturn_temp := StrGet({buff_ptrhex}, 'utf-8')")
+                buff = ''
+
+        self.pyfncb = ctypes.CFUNCTYPE(c_void_p, c_wchar_p)(pyfncb)
+        self.pyfncb_hexptr = hex(cast(self.pyfncb, c_void_p).value)
+        self.add(f'''
+            global _return := ''
+            global _return_buff := ''
+
+            global _pyreturn_temp := ''
+            __pyfncb(cbinfo) {{
+                global _pyreturn_temp
+                local res
+                DllCall({self.pyfncb_hexptr}, 'WStr', cbinfo, 'CDecl')
+                res := JSON.parse(_pyreturn_temp)[1]
+                return res
+            }}
             __return_emtpy() {{
                 global _return
                 _return:= ""
@@ -157,79 +209,144 @@ class Lep_Ahkh2_OT(Lep_Ahkh2_Orgin):
                 global _return, _return_buff
                 ; 类型为字符串时
 
+                _return_buff := ""
                 if (strlen(_return) < 1) {{
                     NumPut('{self._return_size_buff_type_str}', 0, {self._return_size_ptr_hex})
                 }} else {{
                     size := StrPut(_return, 'utf-8') + 2
                     NumPut('{self._return_size_buff_type_str}', size, {self._return_size_ptr_hex})
-                    _return_buff := Buffer(size)
+                    _return_buff := Buffer(size, 0)
+                    NumPut('{self._return_buffptr_type_str}', _return_buff.ptr, {self._return_buffptr_ptr_hex})
                     StrPut(_return, _return_buff, 'utf-8')
                 }}
-
-                ; 类型为Map
-
-                ; 类型为Array
-
-                ; 类型为Object
             }}
         ''' )
+    def add_pyfn(self, pyfunc, alias:str=''):
+        '''
+            pyfunc: python函数
+            alias: ahk调用所用的函数名, 默认为空, 即用的python的函数名
+        '''
+        fnnamepy = pyfunc.__name__
+        fnnameahk = alias if alias else pyfunc.__name__
+        self.add(f"""
+            {fnnameahk}(args*) {{
+                return __pyfncb(JSON.stringify({{fnnamepy: '{fnnamepy}', args: args}}))
+            }}
+        """)
+        self.pyfncbmap[fnnamepy] = pyfunc
+        return (fnnamepy,fnnameahk)
 
-    def add_script(self, ahkscript:str):
-        '''添加ahk代码, 永久保留此代码'''
+    def add_hotkey(self, hotkey:str, pyfn):
+        (fnnamepy,fnnameahk) = self.add_pyfn(pyfn)
+        self.add(f'{hotkey}::{fnnameahk}(A_ThisHotKey)')
+
+    def __del__(self):
+        print('结束线程')
+        if self.ah2dll.ahkReady(self.threadid):
+            self.do('ExitApp(0)')
+        # 未知如何结束线程
+        pass 
+    
+    def isrunning(self):
+        return self.ah2dll.ahkReady(self.threadid)
+
+    def add(self, ahkscript:str):
+        '''
+            添加ahk代码, 永久保留此代码
+        '''
         self.ah2dll.addScript(ahkscript, 1, self.threadid)
     
-    def add_script_file(self, ahkfile:str, encoding='utf-8'):
-        '''从文件添加ahk代码, 永久保留此代码'''
+    def add_file(self, ahkfile:str, encoding='utf-8'):
+        '''
+            从文件添加ahk代码, 永久保留此代码
+        '''
         with open(ahkfile, 'r', encoding=encoding) as f:
             script = f.read()
             f.close()
-        self.add_script(script)
+        self.add(script)
 
-    def fn_backup(self, fnname:str, *args):
+
+    def do(self, ahkscript:str)->str:
         '''
-            该函数不稳定, 第 4095 次调用闪退程序
-            for i in range(0, 9999999)
-            print(ah2.fn('你好', f'你好{i}这么多次'))
+            立即执行ahk代码, 为 ahk变量 _return 赋值将输出为字符串, 将作为 do() 的返回值, 类型为python的str
         '''
-        raise Exception('该函数不可用')
-        arglen = len(args)
-        if arglen > 10: raise Exception('不允许传入10个以上的参数')
-        argsls = []
-        argsls.extend(args)
-        argsls.extend(['' for _ in range(0, 10 - arglen)])
-        argsls.append(self.threadid)
-        return self.ah2dll.ahkFunction(fnname, *argsls)
-
-    def do(self, ahkscript:str):
-
-
         self.ah2dll.ahkExec(f"__return_emtpy()\n{ahkscript}\n__return_ensure()", self.threadid)
+        size = self._return_size_buff.value
+        if size > 0:
+            ptr = self._return_buffptr_buff.value
+            if ptr > 0:
+                return getptrstr(ptr, size, 'utf-8').rstrip('\0')
+        else:
+            return ''
 
-    
+    def doj(self, ahkscript:str)->str:
+        '''
+            立即执行ahk代码, 将 ahk 变量_return赋值为 map, array 或者 object 类型数据, 将作为 doj() 的返回值, 类型为 python 的 dict 或者 list
+        '''
+        end = '''
+        try {
+            if (_return) {
+                _return := JSON.stringify(_return)
+            } else {
+                _return := ""
+            }
+        } catch {
+            _return := ""
+        }
+        '''
+        res = self.do(f'{ahkscript}\n{end}')
+        
+        if (res):
+            res = json.loads(res)
+            return res
+        else:
+            return None
+    """
+        def fn_backup(self, fnname:str, *args):
+            '''
+                该函数不稳定, 第 4095 次调用闪退程序
+                for i in range(0, 9999999)
+                print(ah2.fn('你好', f'你好{i}这么多次'))
+            '''
+            raise Exception('该函数不可用')
+            arglen = len(args)
+            if arglen > 10: raise Exception('不允许传入10个以上的参数')
+            argsls = []
+            argsls.extend(args)
+            argsls.extend(['' for _ in range(0, 10 - arglen)])
+            argsls.append(self.threadid)
+            return self.ah2dll.ahkFunction(fnname, *argsls)
+    """
+
+
+def pyhotkey(A_ThisHotkey:str):
+    print(f'你按下了:{A_ThisHotkey}')
 
 if __name__ == '__main__':
-    import platform
-    dllpath = f"bin\\{ 'ahkh2x32mt.dll' if (platform.architecture()[0] == '32bit') else 'ahkh2x64mt.dll' }"
-    ah2 = Lep_Ahkh2_OT(dllpath)
 
-    # ah2.add_script('Msgbox "你好世界"')
-    # ah2.do("Msgbox '再次你好世界'")
+    if platform.architecture()[0] == '32bit':
+        dllpath = f'{get_main_dir()}\\bin\\ahkh2x32mt.dll'
+    else:
+        dllpath = f'{get_main_dir()}\\bin\\ahkh2x64mt.dll'
 
-    ah2.add_script("""
-    你好(p1) {
+
+    ah2 = Lep_Ahkh2(dllpath)
+
+    def pyfn(ls):
+        return {'hello': f'world...{ls[0]}' }
+
+    ah2.add_pyfn(pyfn)
+    print(ah2.do('_return := pyfn(["abc"])["hello"]'))
+
+
+
+    ah2.add_hotkey('f1', pyhotkey)
+    import time
+
+    while (True):
+        time.sleep(1)
         
-        return p1
-    }
-    """)
 
-    for i in range(0, 9999999):
-        print(ah2.fn('你好', f'你好{i}这么多次'))
-
-
-
-
+    # print(ah2.doj('_return := {hello: "world"}'))
 
     # threadid = ah2.ah2dll.NewThread('Persistent True', '', '')
-
-    
-    
