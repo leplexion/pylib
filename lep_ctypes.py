@@ -113,10 +113,21 @@ class Lep_Buffer:
             f.write(self.raw)
             f.close()
 
-    def get_raw_hex_str(self, delm:str=' ', warp_count=16)->str:
+    def get_hex_str(self, delm:str=' ', warp_count=16)->str:
         res = ''
         idx = 1
         for byte in self.raw:
+            if warp_count > 0 and divmod(idx, warp_count)[1] ==0 and idx != 0: 
+                res += '%02x' % byte + '\n'
+            else:
+                res += '%02x' % byte + delm
+            idx += 1
+        return res
+
+    def get_hex_str_sub(self, start:int, length:int, delm:str=' ', warp_count=0):
+        res = ''
+        idx = 1
+        for byte in self.raw[start: start + length]:
             if warp_count > 0 and divmod(idx, warp_count)[1] ==0 and idx != 0: 
                 res += '%02x' % byte + '\n'
             else:
@@ -191,4 +202,4 @@ if __name__ == '__main__':
     buff = Lep_Buffer.create_from_str('abc', encoding='utf-16')
     buff.fill_bytes(0)
     buff.set_bytes(b'abc', 1)
-    print(buff.get_raw_hex_str())
+    print(buff.get_hex_str())
