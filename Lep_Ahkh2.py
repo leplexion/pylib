@@ -5,8 +5,7 @@ from ctypes import c_int, c_uint, c_void_p, c_wchar_p, _SimpleCData, create_stri
 import json
 import platform
 import __main__, sys, pathlib
-from time import time
-
+from time import time, sleep
 
 def is32ptr()->bool:
     '''判断本进程是32位程序'''
@@ -194,6 +193,10 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
             global _return_buff := ''
 
             global _pyreturn_temp := ''
+
+            __pyhkcb(pyfnname) {{
+                %pyfnname%(A_ThisHotkey)
+            }}
             __pyfncb(cbinfo) {{
                 global _pyreturn_temp
                 local res
@@ -220,6 +223,8 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
                     StrPut(_return, _return_buff, 'utf-8')
                 }}
             }}
+
+            return
         ''' )
     def add_pyfn(self, pyfunc, alias:str=''):
         '''
@@ -228,18 +233,25 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
         '''
         fnnamepy = pyfunc.__name__
         fnnameahk = alias if alias else pyfunc.__name__
+        self.pyfncbmap[fnnamepy] = pyfunc
         self.add(f"""
             {fnnameahk}(args*) {{
                 return __pyfncb(JSON.stringify({{fnnamepy: '{fnnamepy}', args: args}}))
             }}
+            return
         """)
-        self.pyfncbmap[fnnamepy] = pyfunc
+        
         return (fnnamepy,fnnameahk)
 
-    def add_hotkey(self, hotkey:str, pyfn):
-        (fnnamepy,fnnameahk) = self.add_pyfn(pyfn)
-        self.add(f'{hotkey}::{fnnameahk}(A_ThisHotKey)')
+    def add_pyhk(self, hotkey:str, pyfunc, alias:str=''):
+        (fnnamepy,fnnameahk) = self.add_pyfn(pyfunc, alias)
+        self.add(f'{hotkey}::__pyhkcb("{fnnamepy}")\n')
 
+        # return (fnnamepy,fnnameahk)
+        
+    def setval(self, valname, value):
+        pass
+    
     def __del__(self):
         print('结束线程')
         if self.ah2dll.ahkReady(self.threadid):
@@ -253,7 +265,9 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
     def add(self, ahkscript:str):
         '''
             添加ahk代码, 永久保留此代码
+            请勿去掉sleep 函数, 否则可能报错
         '''
+
         self.ah2dll.addScript(ahkscript, 1, self.threadid)
     
     def add_file(self, ahkfile:str, encoding='utf-8'):
@@ -319,34 +333,23 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
     """
 
 
-def pyhotkey(A_ThisHotkey:str):
-    print(f'你按下了:{A_ThisHotkey}')
+def pyhotkey(A_ThisHotkey):
+    for i in range(0, 99):
+        print(f'你按下了热键{A_ThisHotkey}{i}')
+
+def pyfn(ls):
+    return {'hello': f'world...{ls[0]}' }
 
 if __name__ == '__main__':
-
-    if platform.architecture()[0] == '32bit':
+    if is32ptr():
         dllpath = f'{get_main_dir()}\\bin\\ahkh2x32mt.dll'
     else:
         dllpath = f'{get_main_dir()}\\bin\\ahkh2x64mt.dll'
 
-
     ah2 = Lep_Ahkh2(dllpath)
-
-    def pyfn(ls):
-        return {'hello': f'world...{ls[0]}' }
-
     ah2.add_pyfn(pyfn)
-    print(ah2.do('_return := pyfn(["abc"])["hello"]'))
-
-
-
-    ah2.add_hotkey('f1', pyhotkey)
-    import time
+    ah2.add_pyhk('f1', pyhotkey)
 
     while (True):
-        time.sleep(1)
+        sleep(1)
         
-
-    # print(ah2.doj('_return := {hello: "world"}'))
-
-    # threadid = ah2.ah2dll.NewThread('Persistent True', '', '')
