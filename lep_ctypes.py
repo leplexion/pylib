@@ -74,6 +74,13 @@ class Lep_Buffer:
             raise Exception('hexstr长度必须为偶数位')
 
     @staticmethod
+    def create_from_file_hex_str(file):
+        with open(file, 'r', encoding='utf-8') as f:
+            hexstr = f.read()
+            f.close()
+        return Lep_Buffer.create_from_hex_str(hexstr)
+
+    @staticmethod
     def create_from_Lep_Buffer(buff):
         return buff.copy()
 
