@@ -17,16 +17,16 @@ def process_close_self():
     process_close(get_current_pid())
 
 def getptrsize()->int:
-    '''判断指针长度, 单位字节'''
-    return int(platform.architecture()[0][:2])  // 8
+    '''判断指针长度, 单位bit'''
+    return int(platform.architecture()[0][:2])
 
-def isptr32bit()->bool:
+def is32ptr()->bool:
     '''判断本进程是32位程序'''
-    return platform.architecture()[0][:2] == '32'
+    return platform.architecture()[0] == '32bit'
 
-def isptr64bit()->bool:
+def is64ptr()->bool:
     '''判断本进程是32位程序'''
-    return platform.architecture()[0][:2] == '64'
+    return platform.architecture()[0] == '64bit'
 
 if __name__ == '__main__':
     print(getptrsize())

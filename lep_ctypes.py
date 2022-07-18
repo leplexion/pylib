@@ -1,6 +1,47 @@
-from ctypes import create_string_buffer, string_at,sizeof, cast, POINTER, pointer, c_char, c_void_p
+from ctypes import create_string_buffer, string_at,sizeof, cast, POINTER, pointer, c_char, c_void_p, _SimpleCData, c_int
 import ctypes
 import re
+
+def getptrnum(ptr, ctype:_SimpleCData):
+    '''
+        # 获取数字类型指针的
+        getptrnum(buff.ptr, c_int)
+    '''
+    return ctype.from_address(ptr).value
+
+
+def setptrnum(ptr, ctype:_SimpleCData, val):
+    '''
+        # 设置数字类型指针的值, ctype 为 类型, 非实例化对象
+        setptrnum(buff.ptr, c_int, 567)
+    '''
+    ctype.from_address(ptr).value = val
+
+
+def getptrstr(ptr, size:int, encoding:str):
+    '''
+        # 获取指针的指向的字符串
+        b = Lep_Buffer.create_from_str('你好世界')
+        print(getptrstr(b.ptr, b.size, 'utf-8'))
+    '''
+    return string_at(ptr, size).decode(encoding)
+
+
+def getptr(buff:_SimpleCData):
+    '''
+        # 获取已实例化的 ctype 的指针
+        i = c_int(0)
+        p = getbuffptr(i)
+        print(getptrnum(i, c_int))
+    '''
+    return cast(pointer(buff), c_void_p).value
+
+def getptrhex(buff:_SimpleCData):
+    '''
+        # 获取已实例化的 ctype 的指针, 返回十六进制字符串
+    '''
+    return hex(getptr(buff))
+
 
 class Lep_Buffer:
 
@@ -195,11 +236,8 @@ class Lep_Buffer:
         return self
 
 if __name__ == '__main__':
-    # a = Lep_Buffer.create_from_bytes('你好世界'.encode('gbk'))
-    # print(a.ptrhex)
-    # print(a.size)
-    # print(a.raw)
-    buff = Lep_Buffer.create_from_str('abc', encoding='utf-16')
-    buff.fill_bytes(0)
-    buff.set_bytes(b'abc', 1)
-    print(buff.get_hex_str())
+    # i = c_int(123)
+    # print(getptrnum(p, c_int))
+    # print(getbuffptr(i))
+    b = Lep_Buffer.create_from_str('你好世界')
+    print(getptrstr(b.ptr, b.size, 'utf-8'))
