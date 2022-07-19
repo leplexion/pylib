@@ -263,7 +263,16 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
     
     def getval(self, name:str):
         '''读取线程中的全局变量'''
-        return self.do(f'global _return, {name}\n_return := {name}')
+        res = self.doj(f"""
+            if (IsSet({name}))
+                _return := [{name}]
+            else
+                _return := ""
+        """)
+        if res is None:
+            return None
+        else:
+            return res[0]
 
 
     def __del__(self):
@@ -359,9 +368,9 @@ if __name__ == '__main__':
 
 
     ah2 = Lep_Ahkh2(dllpath)
-    ah2.setval('abc', '123')
-    ah2.setval('abc', '567')
-    print(ah2.getval('abc'))
+    # ah2.setval('abc', '123')
+    ah2.setval('abc', {'abc': 123})
+    print(ah2.getval('abc')['abc'])
 
     while (True):
         sleep(1)
