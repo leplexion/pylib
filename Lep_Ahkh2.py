@@ -1,11 +1,9 @@
-from cmath import e
-from concurrent.futures import thread
 import ctypes
-from ctypes import c_int, c_uint, c_void_p, c_wchar_p, _SimpleCData, create_string_buffer, pointer, cast, string_at
+from ctypes import c_int, c_uint, c_void_p, c_wchar_p, _SimpleCData, create_string_buffer, pointer, cast, sizeof, string_at
 import json
 import platform
 import __main__, sys, pathlib
-from time import time, sleep
+from time import sleep
 
 def is32ptr()->bool:
     '''判断本进程是32位程序'''
@@ -53,6 +51,11 @@ def getptrhex(buff:_SimpleCData):
     '''
     return hex(getptr(buff))
 
+def create_buff_str(string:str, encoding:str='utf8'):
+    string += '\0\0'
+    bytes_ = string.encode(encoding)
+    buff = create_string_buffer(bytes_)
+    return (buff, sizeof(buff), getptrhex(buff))
 
 class Lep_Ahkh2_Orgin:
 
@@ -226,6 +229,7 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
 
             return
         ''' )
+    
     def add_pyfn(self, pyfunc, alias:str=''):
         '''
             pyfunc: python函数
@@ -240,25 +244,33 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
             }}
             return
         """)
-        
         return (fnnamepy,fnnameahk)
 
     def add_pyhk(self, hotkey:str, pyfunc, alias:str=''):
         (fnnamepy,fnnameahk) = self.add_pyfn(pyfunc, alias)
         self.add(f'{hotkey}::__pyhkcb("{fnnamepy}")\n')
 
-        # return (fnnamepy,fnnameahk)
         
-    def setval(self, valname, value):
-        pass
+    def setval(self, name:str, value):
+        '''设置线程中的全局变量'''
+        if value == '':
+            self.add(f'global {name} := ""')
+        else:
+            (buff, size, ptrhex) = create_buff_str(json.dumps([value]))
+            self.add(f'global {name} := StrGet({ptrhex}, "utf-8")\n{name} := JSON.parse({name})[1]')
+            del buff
+
     
+    def getval(self, name:str):
+        '''读取线程中的全局变量'''
+        return self.do(f'global _return, {name}\n_return := {name}')
+
+
     def __del__(self):
-        print('结束线程')
+        # print('结束线程')
         if self.ah2dll.ahkReady(self.threadid):
             self.do('ExitApp(0)')
-        # 未知如何结束线程
-        pass 
-    
+
     def isrunning(self):
         return self.ah2dll.ahkReady(self.threadid)
 
@@ -335,20 +347,21 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
 
 def pyhotkey(A_ThisHotkey):
     for i in range(0, 99):
-        print(f'你按下了热键{A_ThisHotkey}{i}')
+        print(f'你按下了热键[{A_ThisHotkey}]{i}次')
 
 def pyfn(ls):
     return {'hello': f'world...{ls[0]}' }
 
 if __name__ == '__main__':
-    if is32ptr():
-        dllpath = f'{get_main_dir()}\\bin\\ahkh2x32mt.dll'
-    else:
-        dllpath = f'{get_main_dir()}\\bin\\ahkh2x64mt.dll'
+    ah2dll32 = f'{get_main_dir()}\\bin\\ahkh2x32mt.dll'
+    ah2dll64 = f'{get_main_dir()}\\bin\\ahkh2x64mt.dll'
+    dllpath = ah2dll32 if is32ptr() else ah2dll64
+
 
     ah2 = Lep_Ahkh2(dllpath)
-    ah2.add_pyfn(pyfn)
-    ah2.add_pyhk('f1', pyhotkey)
+    ah2.setval('abc', '123')
+    ah2.setval('abc', '567')
+    print(ah2.getval('abc'))
 
     while (True):
         sleep(1)
