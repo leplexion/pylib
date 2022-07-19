@@ -5,6 +5,9 @@ import platform
 import __main__, sys, pathlib
 from time import sleep
 
+def loop_long_sleep():
+    while True: sleep(86400)
+
 def is32ptr()->bool:
     '''判断本进程是32位程序'''
     return platform.architecture()[0] == '32bit'
