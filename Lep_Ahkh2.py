@@ -302,6 +302,13 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
                 DllCall({self.py_cb_ptrx}, 'Cdecl')
                 return JSON.parse(_py_cb_buff.str)[1]
             }}
+
+            global __pyhkcbmap := Map()
+            __pyhkcb(ThisHotkey) {{
+                global __pyhkcbmap
+                fnname := __pyhkcbmap[ThisHotkey]
+                __pyfncb({{fnname: fnname, args: []}})
+            }}
         ''' )
         pass
 
@@ -330,10 +337,17 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
 
     def add_pyhk(self, hotkey:str, pyfunc, alias:str=''):
         fnname = self.add_pyfn(pyfunc, alias)
-        self.add(f"{hotkey}::__pyfncb({{fnname: '{fnname}', args: []}})\n")
-        pass
 
-        
+        self.add(f"""
+            __pyhkcbmap['{hotkey}'] := '{fnname}'
+            Hotkey('{hotkey}', __pyhkcb)
+            Hotkey('{hotkey}', __pyhkcb, 'On')
+        """)
+        pass
+    
+    def del_pyhk(self, hotkey:str):
+        self.do(f"""Hotkey('{hotkey}', __pyhkcb, 'Off')""")
+
     def setval(self, name:str, value):
         '''设置线程中的全局变量'''
         if value == '':
@@ -418,36 +432,40 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
         else:
             return None
 
-
-
-def pyhotkey(A_ThisHotkey):
-    for i in range(0, 99):
-        print(f'你按下了热键[{A_ThisHotkey}]{i}次')
-
-def pyfn(ls):
-    return {'hello': f'world...{ls[0]}' }
-
 if __name__ == '__main__':
-    ah2dll32 = f'{get_main_dir()}\\bin\\ahkh2x32mt.dll'
-    ah2dll64 = f'{get_main_dir()}\\bin\\ahkh2x64mt.dll'
-    dllpath = ah2dll32 if is32ptr() else ah2dll64
+
+    # ah2dll32 = f'{get_main_dir()}\\bin\\ahkh2x32mt.dll'
+    # ah2dll64 = f'{get_main_dir()}\\bin\\ahkh2x64mt.dll'
+    # dllpath = ah2dll32 if is32ptr() else ah2dll64
 
 
-    ah2 = Lep_Ahkh2(dllpath)
-    ah2.setval('abc', '123')
-    print(ah2.getval('abc'))
+    # ah2 = Lep_Ahkh2(dllpath)
+    # ah2.setval('abc', '123')
+    # print(ah2.getval('abc'))
     
-    print(ah2.do('_return := "hello world"'))
-    print(ah2.do2('_return := {abc: 123}')['abc'])
+    # print(ah2.do('_return := "hello world"'))
+    # print(ah2.do2('_return := {abc: 123}')['abc'])
 
-    def fn(a):
-        a += 1
-        return a
+    # def fn(a):
+    #     a += 1
+    #     return a
 
-    ah2.add_pyfn(fn)
+    # ah2.add_pyfn(fn)
     
-    ah2.setval('a', 0)
-    while (True):
-        print(ah2.do('a+=1\n_return := fn(a)'))
-        # sleep(1)
+    # ah2.setval('a', 0)
+
+    # def hk1():
+    #     print('来自hk1')
+
+    # def hk2():
+    #     print('来自hk2')
+
+    # ah2.add_pyhk('f1', hk1)
+    # ah2.add_pyhk('f3', hk2)
+    # ah2.del_pyhk('f3')
+
+    # while (True):
+    #     print(ah2.do('a+=1\n_return := fn(a)'))
+    #     sleep(1)
+    pass
         

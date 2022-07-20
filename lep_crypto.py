@@ -1,11 +1,13 @@
 import hashlib
 import sys
+import uuid
 
 def md5hex(s:str):
     m = hashlib.md5()
     m.update(s.encode('utf-8'))
     return m.hexdigest()
 
+PY2 = sys.version_info[0] == 2
 
 def crc32(binaries:bytes):
     crc32_table =[
@@ -84,7 +86,6 @@ def crc32(binaries:bytes):
 def crc32hex(s:str, encoding='utf-8'):
     return hex(crc32(s.encode(encoding=encoding)))
 
-PY2 = sys.version_info[0] == 2
 class crc8(object):
     digest_size = 1
     block_size = 1
@@ -196,3 +197,9 @@ def crc8hex(s:str):
     hash = crc8()
     hash.update(s.encode(encoding='utf-8'))
     return hash.hexdigest()
+
+def uuidstr():
+    return str(uuid.uuid1())
+
+if __name__ == '__main__':
+    print(crc32hex('hello world'))
