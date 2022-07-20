@@ -1,7 +1,6 @@
 import ctypes
 from ctypes import c_int, c_uint, c_void_p, c_wchar_p, _SimpleCData, create_string_buffer, pointer, cast, sizeof, string_at
 import json
-from operator import truth
 import platform
 import __main__, sys, pathlib
 from time import sleep
