@@ -1,6 +1,7 @@
 import ctypes
 from ctypes import c_int, c_uint, c_void_p, c_wchar_p, _SimpleCData, create_string_buffer, pointer, cast, sizeof, string_at
 import json
+from operator import truth
 import platform
 import __main__, sys, pathlib
 from time import sleep
@@ -37,7 +38,9 @@ def getptrstr(ptr, size:int, encoding:str):
         b = Lep_Buffer.create_from_str('你好世界')
         print(getptrstr(b.ptr, b.size, 'utf-8'))
     '''
-    return string_at(ptr, size).decode(encoding)
+    b = string_at(ptr, size)
+    buff = create_string_buffer(b)
+    return buff.raw.decode(encoding=encoding)
 
 def getptr(buff:_SimpleCData):
     '''
@@ -149,109 +152,187 @@ class Lep_Ahkh2_Orgin:
         self.ah2dll:ctypes.CDLL = Lep_Ahkh2_Orgin.ah2dll if Lep_Ahkh2_Orgin.ah2dll else ctypes.cdll.LoadLibrary(dllpath)
 
         # self.ah2dll:ctypes.CDLL = ctypes.cdll.LoadLibrary(dllpath)
-
-
         Lep_Ahkh2_Orgin.settypes(self.ah2dll)
+
+class ShareMem:
+    def __init__(self) -> None:
+        self.size_ahk_type:str = 'UInt'
+        self.size_py_type:_SimpleCData = c_uint
+        self.size_buff:_SimpleCData = self.size_py_type(0)
+        self.size_ptrx = getptrhex(self.size_buff)
+
+        self.ptr_ahk_type:str = 'Ptr'
+        self.ptr_py_type:_SimpleCData = c_void_p
+        self.ptr_buff = self.ptr_py_type(0)
+        self.ptr_ptrx = getptrhex(self.ptr_buff)
+        self.encoding = 'utf-8'
+        self.buff = None
+
+    def getstr(self)->str:
+        size = self.size_buff.value
+        ptr = self.ptr_buff.value
+        if (size > 0) and (ptr != 0):
+            return getptrstr(ptr, size, self.encoding)
+        return ''
+
+    def setstr(self, s:str)->None:
+        if len(s) < 1:
+            self.size_buff.value = 0
+            self.ptr_buff = 0
+            self.buff = None
+            return 
+        bin = (s + '\0\0\0\0\0\0\0\0').encode(self.encoding) 
+        binl = len(bin)
+        self.buff = create_string_buffer(binl)
+        self.buff.value = bin
+        self.size_buff.value = binl
+        self.ptr_buff.value = getptr(self.buff)
 
 class Lep_Ahkh2(Lep_Ahkh2_Orgin):
     ''' AHK阻塞执行 '''
     def __init__(self, dllpath:str='', title:str='', cmdline:str='') -> None:
         '''dllpath第一次初始化要填路径, 最好是完整路径, 成功载入之后该参数无效'''
         super().__init__(dllpath)
-
-        self._return_size_buff_type_str = 'UInt'
-        self._return_size_buff_type = c_uint
-        self._return_size_buff = self._return_size_buff_type(0)
-        self._return_size_ptr_hex = getptrhex(self._return_size_buff)
-
-        self._return_buffptr_type_str = 'Ptr'
-        self._return_buffptr_type = c_void_p
-        self._return_buffptr_buff = self._return_buffptr_type()
-        self._return_buffptr_ptr_hex = getptrhex(self._return_buffptr_buff)
-
         self.title = ''
         self.threadid = self.ah2dll.NewThread('#NoTrayIcon\nPersistent True', cmdline, title)
         while not self.ah2dll.ahkReady(self.threadid):
             pass
 
-        self.pyfncbmap = {}
-        def pyfncb(cbinfo)->c_wchar_p:
-            cbinfo = json.loads(cbinfo)
-            # print(cbinfo)
-            fn = self.pyfncbmap[cbinfo['fnnamepy']]
-            res = fn(*cbinfo['args'])
-            if (res is None) or (res == ''): 
-                self.do("""_pyreturn_temp := '[""]'""")
-            else:
-                sret:str = json.dumps([res]) + '\0\0'
-                bret:bytes = sret.encode('utf-8')
-                
-                buff = create_string_buffer(len(bret))
-                buff.value = bret
-                buff_ptrhex:str = getptrhex(buff)
-                self.do(f"_pyreturn_temp := StrGet({buff_ptrhex}, 'utf-8')")
-                buff = ''
-
-        self.pyfncb = ctypes.CFUNCTYPE(c_void_p, c_wchar_p)(pyfncb)
-        self.pyfncb_hexptr = hex(cast(self.pyfncb, c_void_p).value)
-        self.add(f'''
-            global _return := ''
-            global _return_buff := ''
-
-            global _pyreturn_temp := ''
-
-            __pyhkcb(pyfnname) {{
-                %pyfnname%(A_ThisHotkey)
-            }}
-            __pyfncb(cbinfo) {{
-                global _pyreturn_temp
-                local res
-                DllCall({self.pyfncb_hexptr}, 'WStr', cbinfo, 'CDecl')
-                res := JSON.parse(_pyreturn_temp)[1]
-                return res
-            }}
-            __return_emtpy() {{
-                global _return
-                _return:= ""
-            }}
-            __return_ensure() {{
-                global _return, _return_buff
-                ; 类型为字符串时
-
-                _return_buff := ""
-                if (strlen(_return) < 1) {{
-                    NumPut('{self._return_size_buff_type_str}', 0, {self._return_size_ptr_hex})
-                }} else {{
-                    size := StrPut(_return, 'utf-8') + 2
-                    NumPut('{self._return_size_buff_type_str}', size, {self._return_size_ptr_hex})
-                    _return_buff := Buffer(size, 0)
-                    NumPut('{self._return_buffptr_type_str}', _return_buff.ptr, {self._return_buffptr_ptr_hex})
-                    StrPut(_return, _return_buff, 'utf-8')
+        self.add(f"""
+            class __AHK_PYTHON_SHARE_MEMORY__ {{
+                __New(size_ptrx, size_type, ptr_ptrx, ptr_type) {{
+                    this.size_ptrx  := size_ptrx 
+                    this.size_type  := size_type  
+                    this.ptr_ptrx   := ptr_ptrx 
+                    this.ptr_type   := ptr_type  
+                    this.buff       := ''
+                    this.encoding := 'utf-8'
+                }}
+                size {{
+                    get => NumGet(this.size_ptrx, this.size_type)
+                    set => NumPut(this.size_type, Value, this.size_ptrx) 
+                }}
+                ptr {{
+                    get => NumGet(this.ptr_ptrx, this.ptr_type)
+                    set => NumPut(this.ptr_type, Value, this.ptr_ptrx) 
+                }}
+                str {{
+                    get{{
+                        if not this.size
+                            return ''
+                        ptr := this.ptr
+                        if not ptr
+                            return ''
+                        return StrGet(ptr, this.encoding)
+                    }}
+                    set {{
+                        lstr := strlen(Value)
+                        if not lstr {{
+                            this.size := 0
+                            this.ptr := 0
+                            this.buff := ''
+                        }} else {{
+                            size := StrPut(Value, this.encoding) + 8
+                            this.buff := Buffer(size, 0)
+                            StrPut(Value, this.buff, this.encoding)
+                            this.ptr := this.buff.Ptr
+                            this.size := size
+                            ; msgbox this.size 
+                        }}
+                    }}
                 }}
             }}
+        """)
 
-            return
+        self.ahk_return_buff = ShareMem()
+        self.init_ahk_return_buff()
+
+        self.py_cbinfo_buff = ShareMem()
+        self.py_cb = None
+        self.py_cb_map = {}
+        self.py_cb_buff = None
+        self.pyfncb_hexptr = None
+        self.init_py_cb_buff()
+
+        self.add_pyutil4ahk()
+        
+    def init_ahk_return_buff(self):
+        self.add(f'''
+            ; 用于ahk给python的返回值
+            global _return := ''
+
+            global _return_buff := __AHK_PYTHON_SHARE_MEMORY__(
+                {self.ahk_return_buff.size_ptrx},
+                '{self.ahk_return_buff.size_ahk_type}',
+                {self.ahk_return_buff.ptr_ptrx},
+                '{self.ahk_return_buff.ptr_ahk_type}'
+            )
+            __return_emtpy() {{
+                global _return
+                _return := ''
+            }}
+            __return_ensure() {{    ; 仅返回字符串
+                global _return, _return_buff
+                _return_buff.str := (strlen(_return) < 1) ? '' : _return
+                _return := ''
+            }}
         ''' )
-    
+
+    def init_py_cb_buff(self):
+        def pycb():
+            pycbinfo = json.loads(self.py_cbinfo_buff.getstr().rstrip('\0'))
+            fnname = pycbinfo['fnname']
+            args = pycbinfo['args']
+            fn = self.py_cb_map[fnname]
+            res = fn(*args)
+            self.py_cbinfo_buff.setstr(json.dumps([res]))
+        self.py_cb = pycb
+        self.py_cb_buff = ctypes.CFUNCTYPE(c_void_p)(pycb)
+        self.py_cb_ptrx = hex(cast(self.py_cb_buff, c_void_p).value)
+
+        self.add(f'''
+            ; 用于ahk给python的返回值
+            global _py_cb_buff := __AHK_PYTHON_SHARE_MEMORY__(
+                {self.py_cbinfo_buff.size_ptrx},
+                '{self.py_cbinfo_buff.size_ahk_type}',
+                {self.py_cbinfo_buff.ptr_ptrx},
+                '{self.py_cbinfo_buff.ptr_ahk_type}'
+            )
+            __pyfncb(pycbinfo) {{
+                _py_cb_buff.str := JSON.stringify(pycbinfo)
+                DllCall({self.py_cb_ptrx}, 'Cdecl')
+                return JSON.parse(_py_cb_buff.str)[1]
+            }}
+        ''' )
+        pass
+
+    def add_pyutil4ahk(self):
+        def pyprint(*txt):
+            print(*txt)
+        self.add_pyfn(pyprint, 'print')
+
     def add_pyfn(self, pyfunc, alias:str=''):
         '''
             pyfunc: python函数
             alias: ahk调用所用的函数名, 默认为空, 即用的python的函数名
         '''
-        fnnamepy = pyfunc.__name__
-        fnnameahk = alias if alias else pyfunc.__name__
-        self.pyfncbmap[fnnamepy] = pyfunc
+
+        fnname = alias if alias else pyfunc.__name__
+        if self.py_cb_map.__contains__(fnname) and self.py_cb_map[fnname] != pyfunc:
+            raise Exception('不允许多次添加同一个函数或已被声明过的函数别名(alias)')
+        self.py_cb_map[fnname] = pyfunc
         self.add(f"""
-            {fnnameahk}(args*) {{
-                return __pyfncb(JSON.stringify({{fnnamepy: '{fnnamepy}', args: args}}))
+            {fnname}(args*) {{
+                return __pyfncb({{fnname: '{fnname}', args: args}})
             }}
             return
         """)
-        return (fnnamepy,fnnameahk)
+        return fnname
 
     def add_pyhk(self, hotkey:str, pyfunc, alias:str=''):
-        (fnnamepy,fnnameahk) = self.add_pyfn(pyfunc, alias)
-        self.add(f'{hotkey}::__pyhkcb("{fnnamepy}")\n')
+        fnname = self.add_pyfn(pyfunc, alias)
+        self.add(f"{hotkey}::__pyfncb({{fnname: '{fnname}', args: []}})\n")
+        pass
 
         
     def setval(self, name:str, value):
@@ -259,24 +340,19 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
         if value == '':
             self.add(f'global {name} := ""')
         else:
-            (buff, size, ptrhex) = create_buff_str(json.dumps([value]))
-            self.add(f'global {name} := StrGet({ptrhex}, "utf-8")\n{name} := JSON.parse({name})[1]')
-            del buff
+            self.ahk_return_buff.setstr(json.dumps([value]))
+            self.add(f'global {name} := JSON.parse(_return_buff.str)[1]')
 
-    
     def getval(self, name:str):
         '''读取线程中的全局变量'''
-        res = self.doj(f"""
-            if (IsSet({name}))
-                _return := [{name}]
-            else
+        return self.do2(f"""
+            if (IsSet({name})) {{
+                _return := {name}
+            }}
+            else {{
                 _return := ""
+            }}  
         """)
-        if res is None:
-            return None
-        else:
-            return res[0]
-
 
     def __del__(self):
         # print('结束线程')
@@ -291,8 +367,15 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
             添加ahk代码, 永久保留此代码
             请勿去掉sleep 函数, 否则可能报错
         '''
-
-        self.ah2dll.addScript(ahkscript, 1, self.threadid)
+        done = False
+        for i in range(0, 3):
+            try:
+                self.ah2dll.addScript(ahkscript, 1, self.threadid)
+                done = True
+                break
+            except Exception as e:
+                continue
+        return done
     
     def add_file(self, ahkfile:str, encoding='utf-8'):
         '''
@@ -303,58 +386,39 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
             f.close()
         self.add(script)
 
+    def do0(self, ahkscript:str)->None:
+        '''无返回值, 执行速度最快'''
+        self.ah2dll.ahkExec(f"{ahkscript}", self.threadid)
 
     def do(self, ahkscript:str)->str:
-        '''
-            立即执行ahk代码, 为 ahk变量 _return 赋值将输出为字符串, 将作为 do() 的返回值, 类型为python的str
-        '''
+        '''仅返回字符串, 执行速度偏慢, 立即执行ahk代码, 为 ahk变量 _return 赋值将输出为字符串, 将作为 do() 的返回值, 类型为python的str '''
         self.ah2dll.ahkExec(f"__return_emtpy()\n{ahkscript}\n__return_ensure()", self.threadid)
-        size = self._return_size_buff.value
-        if size > 0:
-            ptr = self._return_buffptr_buff.value
-            if ptr > 0:
-                return getptrstr(ptr, size, 'utf-8').rstrip('\0')
-        else:
-            return ''
+        return self.ahk_return_buff.getstr()
 
-    def doj(self, ahkscript:str)->str:
+    def do2(self, ahkscript:str)->str:
         '''
-            立即执行ahk代码, 将 ahk 变量_return赋值为 map, array 或者 object 类型数据, 将作为 doj() 的返回值, 类型为 python 的 dict 或者 list
+            返回复杂类型的, 执行速度最慢 立即执行ahk代码, 将 ahk 变量_return赋值为 map, array 或者 object 类型数据, 将作为 doj() 的返回值, 类型为 python 的 dict 或者 list
         '''
-        end = '''
+        endscript = '''
         try {
-            if (_return) {
-                _return := JSON.stringify(_return)
+            if (_return != '') {
+                _return := JSON.stringify([_return])
             } else {
-                _return := ""
+                _return := ''
             }
         } catch {
-            _return := ""
+            _return := ''
         }
         '''
-        res = self.do(f'{ahkscript}\n{end}')
-        
+        self.ah2dll.ahkExec(f'__return_emtpy()\n{ahkscript}\n{endscript}\n__return_ensure()', self.threadid)
+        res = self.ahk_return_buff.getstr().rstrip('\0')
+        # print('res', res.encode('utf-8'))
         if (res):
             res = json.loads(res)
-            return res
+            return res[0]
         else:
             return None
-    """
-        def fn_backup(self, fnname:str, *args):
-            '''
-                该函数不稳定, 第 4095 次调用闪退程序
-                for i in range(0, 9999999)
-                print(ah2.fn('你好', f'你好{i}这么多次'))
-            '''
-            raise Exception('该函数不可用')
-            arglen = len(args)
-            if arglen > 10: raise Exception('不允许传入10个以上的参数')
-            argsls = []
-            argsls.extend(args)
-            argsls.extend(['' for _ in range(0, 10 - arglen)])
-            argsls.append(self.threadid)
-            return self.ah2dll.ahkFunction(fnname, *argsls)
-    """
+
 
 
 def pyhotkey(A_ThisHotkey):
@@ -371,10 +435,20 @@ if __name__ == '__main__':
 
 
     ah2 = Lep_Ahkh2(dllpath)
-    # ah2.setval('abc', '123')
-    ah2.setval('abc', {'abc': 123})
-    print(ah2.getval('abc')['abc'])
+    ah2.setval('abc', '123')
+    print(ah2.getval('abc'))
+    
+    print(ah2.do('_return := "hello world"'))
+    print(ah2.do2('_return := {abc: 123}')['abc'])
 
+    def fn(a):
+        a += 1
+        return a
+
+    ah2.add_pyfn(fn)
+    
+    ah2.setval('a', 0)
     while (True):
-        sleep(1)
+        print(ah2.do('a+=1\n_return := fn(a)'))
+        # sleep(1)
         
