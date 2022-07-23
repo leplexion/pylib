@@ -1,3 +1,6 @@
+import os
+import pathlib
+
 def filewrite(content:str, file:str, encoding = 'utf-8'):
     with open(file, 'w', encoding=encoding) as f:
         f.write(content)
@@ -17,3 +20,6 @@ def fileread(path:str, encoding='utf-8'):
         res = f.read()
         f.close()
     return res
+
+def file_exist(path:str)->bool:
+    return os.path.exists(path) and pathlib.Path(path).is_dir()

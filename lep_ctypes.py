@@ -2,6 +2,13 @@ from ctypes import create_string_buffer, string_at,sizeof, cast, POINTER, pointe
 import ctypes
 import re
 
+# 第三方库
+import chardet
+
+def test_encoding_hexstr(hexstr:str):
+    buff = Lep_Buffer.create_from_hex_str(hexstr)
+    return chardet.detect(buff.raw)
+
 def getptrnum(ptr, ctype:_SimpleCData):
     '''
         # 获取数字类型指针的
