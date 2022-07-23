@@ -5,7 +5,20 @@ import re
 # 第三方库
 import chardet
 
+
+def hexstr2bytes(hexstr:str):
+    '''hexstr: 16进制字符串, 如 "AA BB FF 01 05, 将删除所有空格, 1个字节占2位符号, 即必须偶数个字符串" '''
+    hexstr = re.sub(r'\s+', '', hexstr)
+    chrlen = len(hexstr)
+    if chrlen > 0 and divmod(chrlen, 2)[1] == 0:
+        blist = [ int(hexstr[i:i+2], 16) for i in range(0, chrlen, 2) ]
+        return bytes(blist)
+    else:
+        raise Exception('hexstr长度必须为偶数位')
+
+
 def test_encoding_hexstr(hexstr:str):
+    '''检测字符串编码: 从二进制 hex 文本'''
     buff = Lep_Buffer.create_from_hex_str(hexstr)
     return chardet.detect(buff.raw)
 
