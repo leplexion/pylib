@@ -17,3 +17,4 @@ def folder_not_exist(path:str)->str:
 def folder_exist(path:str)->bool:
     '''文件夹存在'''
     return os.path.exists(path) and pathlib.Path(path).is_dir()
+
