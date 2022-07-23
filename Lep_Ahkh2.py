@@ -434,12 +434,16 @@ class Lep_Ahkh2(Lep_Ahkh2_Orgin):
 
 if __name__ == '__main__':
 
-    # ah2dll32 = f'{get_main_dir()}\\bin\\ahkh2x32mt.dll'
-    # ah2dll64 = f'{get_main_dir()}\\bin\\ahkh2x64mt.dll'
-    # dllpath = ah2dll32 if is32ptr() else ah2dll64
+    ah2dll32 = f'{get_main_dir()}\\bin\\ahkh2x32mt.dll'
+    ah2dll64 = f'{get_main_dir()}\\bin\\ahkh2x64mt.dll'
+    dllpath = ah2dll32 if is32ptr() else ah2dll64
+    
 
-
-    # ah2 = Lep_Ahkh2(dllpath)
+    ah2 = Lep_Ahkh2(dllpath)
+    ah2.do('FileAppend("看我独占终端", "*")')
+    ah2.add_pyfn(input)
+    ah2.do('print(input("你想输入点啥么"))')
+    
     # ah2.setval('abc', '123')
     # print(ah2.getval('abc'))
     
