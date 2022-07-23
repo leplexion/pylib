@@ -2,10 +2,20 @@ import requests
 import requests.utils
 from requests import Response, Session
 import urllib3
+import urllib.parse
+
 try:
     from .lep_print import print_e
 except:
     from lep_print import print_e
+
+def encodeUriComponent(url:str, safe:str='/'):
+    return urllib.parse.quote(url, safe=safe)
+    
+def decodeUriComponent():
+    # todo
+    pass
+
 
 def cookieStr2Dict(cookies:str):
     cookie_dic = {}
