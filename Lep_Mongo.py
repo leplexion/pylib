@@ -160,14 +160,14 @@ class Lep_Mongo_Collection:
         except:
             return None
 
-class User(Lep_Mongo_Collection):
-    coolection_name = 'user'
-    def __init__(self,lepclient:Lep_Mongo_Client=None, session=None): super().__init__(User.coolection_name, lepclient, session)
+# class User(Lep_Mongo_Collection):
+#     coolection_name = 'user'
+#     def __init__(self,lepclient:Lep_Mongo_Client=None, session=None): super().__init__(User.coolection_name, lepclient, session)
 
 
 
 if __name__ == '__main__':
-    Lep_Mongo_Client.SetDefaultClientArgs(host='127.0.0.1', port=27017, user='gfy_admin', pswd='0HliFM7mzwS0wkhA', dbname='guangfuyun')
+    Lep_Mongo_Client.SetDefaultClientArgs(host='127.0.0.1', port=27017, user='admin', pswd='admin', dbname='mydb')
 
     # 事务
     # lepclient = Lep_Mongo_Client()
@@ -178,10 +178,12 @@ if __name__ == '__main__':
     #         ids = user.delmany({})
     #         raise Exception('')        
 
-    user = User()
-    id = user.add({'name': 'abc'})
-    id = user.add({'name': 'bcd'})
-    print(user.page({}, 2, 10))
+    # user = User()
+    # id = user.add({'name': 'abc'})
+    # id = user.add({'name': 'bcd'})
+    # print(user.page({}, 2, 10))
+    
+    pass
     
 
 
