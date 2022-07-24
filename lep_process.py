@@ -2,6 +2,13 @@ from tokenize import PlainToken
 import psutil
 import os
 import platform
+import subprocess
+
+def command(cmd:str):
+    '''code, data, err = command()'''
+    p = subprocess.Popen('ping 127.0.0.1', stdout=subprocess.PIPE)
+    stdoutdata, stderrdata = p.communicate()
+    return p.returncode,  stdoutdata, stderrdata
 
 def process_close(pid):
     '''通过pid关闭进程'''
