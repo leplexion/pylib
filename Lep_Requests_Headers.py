@@ -12,6 +12,9 @@ except:
 
 import json
 
+# --------------------------------------------------------------------------------
+def LoadHeaders(path:str):
+    return HeaderLoader(path).headers
 
 class HeaderLoader:
     '''使header从文件载入, 只导入一次, json, yaml, py中直接引入header 或 headers 值'''
