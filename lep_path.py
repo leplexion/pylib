@@ -3,6 +3,37 @@ import os
 import sys
 import __main__
 
+def str2filename(s:str, maxch:int=127):
+    '''将url的path转换为创建文件名可用的字符串, 空白或为空返回@符号'''
+    divch = '@'
+    replaces = {
+        '/': divch,
+        '\\': divch,
+        '?': '[w]',
+        '*': '[x]',
+        '|': '[i]',
+        '>': '[r]',
+        '<': '[l]',
+        '"': '[y]',
+    }
+    if not s: 
+        return divch
+    
+    s = str(s)
+    if not s.strip(): 
+        return divch
+
+    res = ''
+    for ch in s:
+        if replaces.__contains__(ch):
+            res += replaces[ch]
+        else:
+            res += ch
+    if len(res) > maxch:
+        res = res[:maxch]
+
+    return res
+
 def working_dir(): 
     '''获取工作目录'''
     return str(pathlib.Path().parent.absolute())

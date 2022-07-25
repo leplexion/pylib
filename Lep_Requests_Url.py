@@ -1,28 +1,28 @@
 import urllib
+try:
+    from .lep_path import str2filename
+except Exception as e:
+    from lep_path import str2filename
+
+urlpath2FileName = str2filename
 
 
-def urlpath2FileName(path:str, ignore_query:bool=True):
-    '''将url的path转换为创建文件名可用的字符串'''
-    divch = '@'
-    replaces = {
-        '/': divch,
-        '\\': divch,
-        '?': '[w]',
-        '*': '[x]',
-        '|': '[i]',
-        '>': '[r]',
-        '<': '[l]',
-        '"': '[y]',
-    }
+def urlClearQuery(path:str):
+    '''删除 # 和 ? 后面的内容'''
     if not path:
-        return divch
-    res = ''
-    for ch in path:
-        if replaces.__contains__(ch):
-            res += replaces[ch]
-        else:
-            res += ch
-    return res
+        return ''
+
+    if path[0] == '?' or path[0] == '#':
+        return ''
+
+    if '?' in path:
+        path = path.split('?')[0]
+
+    if '#' in path:
+        path = path.split('#')[0]
+    return path
+    
+
 
 def encodeUriComponent(url:str, safe:str='/'):
     return urllib.parse.quote(url, safe=safe)
