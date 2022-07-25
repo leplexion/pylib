@@ -86,6 +86,7 @@ def crc32(binaries:bytes):
 def crc32hex(s:str, encoding='utf-8'):
     return hex(crc32(s.encode(encoding=encoding)))
 
+# -----------------------------------------------------------
 class crc8(object):
     digest_size = 1
     block_size = 1
@@ -200,6 +201,21 @@ def crc8hex(s:str):
 
 def uuidstr():
     return str(uuid.uuid1())
+
+# -----------------------------------------------------------
+def hashText(text:str, salt:str):
+    """
+        用随机盐加密文本
+    """
+    salt = uuid.uuid4().hex
+    return hashlib.sha256(salt.encode() + text.encode()).hexdigest() + ':' + salt
+    
+def matchHashedText(hashedText:str, providedText:str):
+    """
+        对比文本哈希
+    """
+    _hashedText, salt = hashedText.split(':')
+    return _hashedText == hashlib.sha256(salt.encode() + providedText.encode()).hexdigest()
 
 if __name__ == '__main__':
     print(crc32hex('hello world'))
