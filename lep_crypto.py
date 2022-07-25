@@ -2,13 +2,15 @@ import hashlib
 import sys
 import uuid
 
+# -----------------------------------------------------------
+# md5
 def md5hex(s:str):
     m = hashlib.md5()
     m.update(s.encode('utf-8'))
     return m.hexdigest()
 
-PY2 = sys.version_info[0] == 2
-
+# -----------------------------------------------------------
+# crc
 def crc32(binaries:bytes):
     crc32_table =[
         0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
@@ -87,6 +89,8 @@ def crc32hex(s:str, encoding='utf-8'):
     return hex(crc32(s.encode(encoding=encoding)))
 
 # -----------------------------------------------------------
+# crc
+PY2 = sys.version_info[0] == 2
 class crc8(object):
     digest_size = 1
     block_size = 1
@@ -203,6 +207,7 @@ def uuidstr():
     return str(uuid.uuid1())
 
 # -----------------------------------------------------------
+# 哈希校验
 def hashText(text:str, salt:str):
     """
         用随机盐加密文本
