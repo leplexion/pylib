@@ -1,5 +1,6 @@
 from .lep_path import get_ext, get_name_noext
 from .lep_file import fileread
+from .lep_yaml import yaml_load_file
 import json
 
 
@@ -15,10 +16,12 @@ class HeaderLoader:
 
             elif ext == 'json':
                 HeaderLoader._map[path] = json.loads(fileread(path))
+
             elif ext == 'yaml':
-                HeaderLoader._map[path] = ''
+                HeaderLoader._map[path] = yaml_load_file(path)
+
             else:
-                raise Exception('不支持的格式')
+                raise Exception(f'不支持的格式:{ext}')
 
         if HeaderLoader._map.__contains__(path):
             self.headers = HeaderLoader._map[path]
