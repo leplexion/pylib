@@ -52,6 +52,7 @@ class Lep_ReqBase:
 
     @property
     def request_dump_hook(self):
+
         '''
             prep = self.prepare_request(req)
 
@@ -61,6 +62,7 @@ class Lep_ReqBase:
                 print('requests 注入 session dump_hook')
                 getattr(self, 'dump_hook')[0](prep)
         '''
+
         def dump_hook(prep_request_args):
             self.dumpidx += 1
             path_url = urlClearQuery(prep_request_args.path_url)
@@ -231,4 +233,9 @@ class Lep_ReqBase:
         return dict(self.req.cookies.get_dict())
         
     def cookies_set(self, cookies:dict = None):
+<<<<<<< HEAD
         requests.utils.add_dict_to_cookiejar(self.req.cookies, cookies)
+=======
+        requests.utils.add_dict_to_cookiejar(self.req.cookies, cookies)
+    
+>>>>>>> ae94394536239b8003cbd96375692182121b11ed
