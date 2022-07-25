@@ -20,6 +20,7 @@ def urlClearQuery(path:str):
 
     if '#' in path:
         path = path.split('#')[0]
+        
     return path
     
 

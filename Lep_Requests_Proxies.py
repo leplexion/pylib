@@ -6,12 +6,10 @@ def getDictSocks5Auth(user, pswd, ip, port):
     socks5 = f'socks5://{user}:{pswd}@{ip}:{port}'
     return {'http': socks5, 'https': socks5}
 
-
 def getDictSocks5(ip, port):
     ''' 必须安装pysocks "pip install pysocks", 格式如: {'http': 'socks5://127.0.0.1:1080', 'https': 'socks5://127.0.0.1:1080'} '''
     socks5 = f'socks5://{ip}:{port}'
     return {'http': socks5, 'https': socks5}
-
 
 def getHttpProxies(ip, port):
     ''' http://ip:port '''
@@ -40,7 +38,6 @@ def checkMyIp(ip:str, proxies=None, useprint=True):
         return (False, res.content)
     except Exception as e:
         return (False, f'checkMyIp()发生异常,异常类型{type(e).__name__}')
-
 
 def isProxyEnable(proxy:dict, ip:str)->str:
     # proxy = {'http': 'socks5://123456:654321@23.23.23.23:5555', 'https': 'socks5://123456:654321@23.23.23.23:5555'}
