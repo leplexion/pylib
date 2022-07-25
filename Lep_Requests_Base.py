@@ -28,11 +28,9 @@ except Exception as e:
     from lep_file import filewriteb
 
 
-
-
 class Lep_ReqBase:
-    
-    def __init__(self, proxies:dict=None, cookies:dict=None, dump_enable:bool = False, timeout:int=5) -> None:
+
+    def __init__(self, proxies:dict=None, cookies:dict=None, dump_enable:bool=False, timeout:int=5) -> None:
         self.req                = requests.session()
         self.good_uploads:list  = []
         self.proxies:dict       = proxies
