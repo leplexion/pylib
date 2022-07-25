@@ -29,7 +29,7 @@ except Exception as e:
 
 
 class Lep_ReqBase:
-
+    # -----------------------------------------------------------------------------------------------------
     def __init__(self, proxies:dict=None, cookies:dict=None, dump_enable:bool=False, timeout:int=5) -> None:
         self.req                = requests.session()
         self.good_uploads:list  = []
@@ -49,7 +49,9 @@ class Lep_ReqBase:
             print(f'请求dump创建文件夹:{self.dumpdir}')
             folder_create(self.dumpdir)
             setattr(self.req, 'dump_hook', [self.request_dump_hook])
-
+    
+    
+    # -----------------------------------------------------------------------------------------------------
     @property
     def request_dump_hook(self):
 
@@ -115,6 +117,7 @@ class Lep_ReqBase:
                     f.close()
         return dump_hook
 
+    # -----------------------------------------------------------------------------------------------------
     def response_dump(self, res:requests.Response):
         res_code        = res.status_code
         res_headers     = jsonpretty(dict(res.headers))
@@ -155,6 +158,7 @@ class Lep_ReqBase:
             f.close()
         filewriteb(res_data_bytes, f'{dump_this_file}.content.txt')
 
+    # -----------------------------------------------------------------------------------------------------
     def get(self, url:str, params:dict = None, data=None, timeout:int=None, **extparas)->requests.Response:
         self.dump_method = 'GET'
         paras = {
@@ -166,8 +170,6 @@ class Lep_ReqBase:
         if params:          paras['params']     = params
         if data:            paras['data']       = data
         if timeout:         paras['timeout']    = timeout
-
-        # sessions D:\py\py38-32\Lib\site-packages\requests\sessions.py 约575行 prepare_request 返回值为最终请求参数
 
         res = self.req.get(**paras, **extparas)
         if self.dump_enable: self.response_dump(res)
@@ -190,6 +192,8 @@ class Lep_ReqBase:
         # dtxt, djson, draw, code, res_headers = self.get()
         return res_data_text, res_data_json, res_data_bytes, res_code, res_headers
 
+
+    # -----------------------------------------------------------------------------------------------------
     def post(self, url:str, params:dict = None, data=None, timeout:int=None, **extparas)->requests.Response:
         self.dump_method = 'POST'
         
@@ -221,14 +225,9 @@ class Lep_ReqBase:
         except Exception as e:
             res_data_text   = ''
         
-        # self.check_request_dump_hook()
-
-        # dtxt, djson, draw, code, res_headers = self.post()
         return res_data_text, res_data_json, res_data_bytes, res_code, res_headers
 
-    # def post_x_www_form_urlencoded(self, url:str, fields:dict, params:dict = None, data=None, timeout:int=None, **extparas)->requests.Response:
-    #     return self.post(
-
+    # -----------------------------------------------------------------------------------------------------
     def cookies_get(self):
         return dict(self.req.cookies.get_dict())
         
