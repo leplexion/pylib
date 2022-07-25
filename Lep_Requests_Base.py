@@ -233,9 +233,4 @@ class Lep_ReqBase:
         return dict(self.req.cookies.get_dict())
         
     def cookies_set(self, cookies:dict = None):
-<<<<<<< HEAD
         requests.utils.add_dict_to_cookiejar(self.req.cookies, cookies)
-=======
-        requests.utils.add_dict_to_cookiejar(self.req.cookies, cookies)
-    
->>>>>>> ae94394536239b8003cbd96375692182121b11ed
