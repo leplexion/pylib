@@ -2,15 +2,21 @@ import hashlib
 import sys
 import uuid
 
-# -----------------------------------------------------------
-# md5
+# --- guid --------------------------------------------------------
+def uuidstr():
+    return str(uuid.uuid1())
+
+# --- md5 --------------------------------------------------------
 def md5hex(s:str):
     m = hashlib.md5()
     m.update(s.encode('utf-8'))
     return m.hexdigest()
 
-# -----------------------------------------------------------
-# crc
+# --- crc --------------------------------------------------------
+
+def crc32hex(s:str, encoding='utf-8'):
+    return hex(crc32(s.encode(encoding=encoding)))
+
 def crc32(binaries:bytes):
     crc32_table =[
         0x00000000, 0x77073096, 0xEE0E612C, 0x990951BA,
@@ -85,11 +91,12 @@ def crc32(binaries:bytes):
         index = index + 1
     return crc ^ 0xFFFFFFFF
 
-def crc32hex(s:str, encoding='utf-8'):
-    return hex(crc32(s.encode(encoding=encoding)))
+# --- crc8 -----------------------------------------------------------
+def crc8hex(s:str):
+    hash = crc8()
+    hash.update(s.encode(encoding='utf-8'))
+    return hash.hexdigest()
 
-# -----------------------------------------------------------
-# crc
 PY2 = sys.version_info[0] == 2
 class crc8(object):
     digest_size = 1
@@ -198,19 +205,11 @@ class crc8(object):
         crc._sum = self._sum
         return crc
 
-def crc8hex(s:str):
-    hash = crc8()
-    hash.update(s.encode(encoding='utf-8'))
-    return hash.hexdigest()
 
-def uuidstr():
-    return str(uuid.uuid1())
-
-# -----------------------------------------------------------
-# 哈希校验
+# --- token -----------------------------------------------------------
 def hashText(text:str, salt:str):
     """
-        用随机盐加密文本
+        用盐加密文本
     """
     salt = uuid.uuid4().hex
     return hashlib.sha256(salt.encode() + text.encode()).hexdigest() + ':' + salt
