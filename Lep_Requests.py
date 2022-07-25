@@ -6,77 +6,16 @@ import urllib.parse
 
 try:
     from .lep_print import print_e
+    from .Lep_Requests_Url import *
+    from .Lep_Requests_Proxies import *
+    from .Lep_Requests_Cookie import *
 except:
     from lep_print import print_e
-
-def encodeUriComponent(url:str, safe:str='/'):
-    return urllib.parse.quote(url, safe=safe)
-    
-def decodeUriComponent():
-    # todo
-    pass
+    from Lep_Requests_Url import *
+    from Lep_Requests_Proxies import *
+    from Lep_Requests_Cookie import *
 
 
-def cookieStr2Dict(cookies:str):
-    cookie_dic = {}
-    for i in cookies.split('; '):
-        cookie_dic[i.split('=')[0]] = i.split('=')[1]
-    return cookie_dic
-
-def cookieDict2Str(cookies:dict):
-    return requests.utils.cookiejar_from_dict(cookies)
-
-def parseCookie(cookie:str)->dict:
-    ''' 解析从谷歌浏览器复制黏贴的cookie '''
-    if cookie == '': raise Exception('cookie 不允许未空')
-    sstart = 'cookie: '
-    cookie=cookie.strip(' ')
-    if cookie.startswith(sstart):
-        cookie = cookie[len(sstart):]
-    res:dict = {}
-    cookiepairs = cookie.split(' ')
-    cookiepair:str = ''
-    for cookiepair in cookiepairs:
-        cookiepair=cookiepair.strip(' ')
-        if cookiepair.startswith('=') or cookiepair.endswith('='):
-            raise Exception(f'解析cookie错误: 遭遇开头或尾部={cookiepair}')
-        cookiepairls= cookiepair.split('=')
-        if len(cookiepairls) != 2:
-            raise Exception(f'解析cookie错误: 获得超过不等于2位的键值对 {cookiepair}')
-        val:str = cookiepairls[1]
-        res[cookiepairls[0]] = val if not val.endswith(';') else val[:-1]
-    # a = res.keys
-    if len(res) < 1:
-        raise Exception(f'解析cookie错误: 未成功解析cookie内容')
-    return res
-
-def isProxyEnable(proxy:dict, ip:str)->str:
-    # proxy = {'http': 'socks5://123456:654321@23.23.23.23:5555', 'https': 'socks5://123456:654321@23.23.23.23:5555'}
-    # ip = '23.23.23.23'
-    # print('检测代理', proxy)
-
-    try:
-        res = requests.get('https://api.myip.com', proxies=proxy, verify=False, timeout=2)
-        if res.status_code == 200:
-            resj:dict = res.json()
-            if resj.__contains__('ip'): 
-                if resj['ip'] != ip: 
-                    return '使用代理似乎不成功'
-                return None
-            else:
-                return '请求ip地址格式未知:'
-        else:
-            # print(res)
-            return f'状态码{res.status_code},返回内容:' + res.text
-    
-    except requests.exceptions.ConnectTimeout as e:
-        errmsg = '代理连接超时'
-        return errmsg
-
-    except Exception as e:
-        print(e)
-        errmsg = f'验证代理发生未知的错误类型{type(e)}'
-        return errmsg
 
 def diable_urilib3_warnings():  # 禁用 ssl 警告
     urllib3.disable_warnings()

@@ -41,5 +41,35 @@ def checkMyIp(ip:str, proxies=None, useprint=True):
     except Exception as e:
         return (False, f'checkMyIp()发生异常,异常类型{type(e).__name__}')
 
+
+def isProxyEnable(proxy:dict, ip:str)->str:
+    # proxy = {'http': 'socks5://123456:654321@23.23.23.23:5555', 'https': 'socks5://123456:654321@23.23.23.23:5555'}
+    # ip = '23.23.23.23'
+    # print('检测代理', proxy)
+
+    try:
+        res = requests.get('https://api.myip.com', proxies=proxy, verify=False, timeout=2)
+        if res.status_code == 200:
+            resj:dict = res.json()
+            if resj.__contains__('ip'): 
+                if resj['ip'] != ip: 
+                    return '使用代理似乎不成功'
+                return None
+            else:
+                return '请求ip地址格式未知:'
+        else:
+            # print(res)
+            return f'状态码{res.status_code},返回内容:' + res.text
+    
+    except requests.exceptions.ConnectTimeout as e:
+        errmsg = '代理连接超时'
+        return errmsg
+
+    except Exception as e:
+        print(e)
+        errmsg = f'验证代理发生未知的错误类型{type(e)}'
+        return errmsg
+
+
 if __name__ == '__main__':
     checkMyIp('10.10.10.10')
