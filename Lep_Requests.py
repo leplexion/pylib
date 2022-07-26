@@ -10,12 +10,38 @@ try:
     from .Lep_Requests_Proxies import *
     from .Lep_Requests_Cookie import *
     from .Lep_Requests_Headers import *
+    from .lep_file import file_exist
 except:
     from lep_print import print_e
     from Lep_Requests_Url import *
     from Lep_Requests_Proxies import *
     from Lep_Requests_Cookie import *
     from Lep_Requests_Headers import *
+    from lep_file import file_exist
+
+import mimetypes
+
+
+def get_file_mimetype(path:str):
+    '''获取(猜测)headers 中的 content-type 和 data: {mime-type}'''
+    if not file_exist(path):
+        raise Exception(f'get_file_mimetype函数错误,路径不存在: {path}')
+    res: tuple = mimetypes.guess_type(path, strict=True)
+    if res is None:
+        raise Exception(f'get_file_mimetype函数错误,返回错误')
+    return res[0]
+
+def get_image_data_base64(path:str):
+    '''获取图像"data:{meme_type};base64,"形式的编码'''
+    mimetype = get_file_mimetype(path)
+    if not mimetype.startswith('image/'):
+        raise Exception(f'get_image_data_base64函数错误,文件mimetype非图像类型{path}')
+    res:str = f'data:{mimetype};base64,'
+    return res
+
+def get_image_data_base64_url(path:str):
+    '''同get_image_data_base64, 经过uri转码'''
+    return encodeUriComponent(get_image_data_base64(path))
 
 def diable_urilib3_warnings():  # 禁用 ssl 警告
     urllib3.disable_warnings()
@@ -95,4 +121,6 @@ class LepRequests:
             raise e
 
 if __name__ == '__main__':
-    print(cookieStr2Dict('yandexuid=1895670281657529799; yuidss=1895670281657529799; i=h+wh9pItRSyhKlw4GthKt6liw6FoEPiEO2loGZDOvHzM/ZN8a0fV57Qljtb4XZFHN4oi+ueQ+1hXXC2Ow/4RF9Vgp0M=; yandex_gid=87; is_gdpr=0; is_gdpr_b=CI+ICxDwfQ==; yp=1657939556.yu.1895670281657529799; ymex=1660445156.oyu.1895670281657529799#1689138965.yrts.1657602965#1689139825.yrtsi.1657603825; sync_cookie_ok=synced; yabs-sid=850611151657933394'))
+    # print(cookieStr2Dict('yandexuid=1895670281657529799; yuidss=1895670281657529799; i=h+wh9pItRSyhKlw4GthKt6liw6FoEPiEO2loGZDOvHzM/ZN8a0fV57Qljtb4XZFHN4oi+ueQ+1hXXC2Ow/4RF9Vgp0M=; yandex_gid=87; is_gdpr=0; is_gdpr_b=CI+ICxDwfQ==; yp=1657939556.yu.1895670281657529799; ymex=1660445156.oyu.1895670281657529799#1689138965.yrts.1657602965#1689139825.yrtsi.1657603825; sync_cookie_ok=synced; yabs-sid=850611151657933394'))
+    a = get_file_mimetype('C:\\Users\\DY-I7\\Desktop\\bcd.jpg')
+    pass

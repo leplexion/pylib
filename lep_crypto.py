@@ -1,7 +1,9 @@
 import hashlib
 import sys
 import uuid
-
+'''
+    摘要 或 hash 库
+'''
 # --- guid --------------------------------------------------------
 def uuidstr():
     return str(uuid.uuid1())
