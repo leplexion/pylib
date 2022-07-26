@@ -108,7 +108,7 @@ def is_compiled():
 
 def get_parent_dir(path:str): 
     '''获取上一级目录'''
-    return pathlib.Path(path).parent.absolute()
+    return str(pathlib.Path(path).parent.absolute())
 
 
 def get_dir_list(dir:str='', mode:str='', recursion:bool=False, ensuredir:bool=True, ext:str=''):
