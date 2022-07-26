@@ -156,7 +156,7 @@ class Lep_ReqBase:
 {'=' * 60}
                 """)
             f.close()
-        filewriteb(res_data_bytes, f'{dump_this_file}.content.txt')
+        filewriteb(res_data_bytes, f'{dump_this_file}.content.bin')
 
     # -----------------------------------------------------------------------------------------------------
     def get(self, url:str, params:dict = None, data=None, timeout:int=None, **extparas)->requests.Response:
