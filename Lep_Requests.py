@@ -9,13 +9,13 @@ try:
     from .Lep_Requests_Url import *
     from .Lep_Requests_Proxies import *
     from .Lep_Requests_Cookie import *
-    from .Lep_Requests_Header import *
+    from .Lep_Requests_Headers import *
 except:
     from lep_print import print_e
     from Lep_Requests_Url import *
     from Lep_Requests_Proxies import *
     from Lep_Requests_Cookie import *
-    from Lep_Requests_Header import *
+    from Lep_Requests_Headers import *
 
 def diable_urilib3_warnings():  # 禁用 ssl 警告
     urllib3.disable_warnings()
