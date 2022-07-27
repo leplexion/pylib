@@ -32,3 +32,5 @@ def decodeUriComponent():
     # todo
     pass
 
+if __name__ == '__main__':
+    print(encodeUriComponent('大阪府'))
