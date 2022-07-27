@@ -11,7 +11,7 @@ ReCapv3Types = [
 
 class ReCapv3Proxy:
     '''
-    proxyType
+    proxyType: HTTP/ HTTPS / SOCKS5 / SOCKS4
     proxyAddress
     proxyPort
     proxyLogin
